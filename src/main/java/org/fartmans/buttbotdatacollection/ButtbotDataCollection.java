@@ -1,6 +1,8 @@
 package org.fartmans.buttbotdatacollection;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.player.Player;
 import org.slf4j.Logger;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -11,24 +13,29 @@ import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.AdvancementEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.minecraft.server.level.ServerPlayer;
+
+import java.awt.image.DataBuffer;
 import java.sql.Timestamp;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.Temporal;
 import java.util.ArrayList;
 import java.util.List;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import net.minecraft.network.chat.Component;
+import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
+import net.neoforged.neoforge.event.entity.item.ItemTossEvent;
+
+import javax.xml.crypto.Data;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
 @Mod("buttbotdatacollection")
 public class ButtbotDataCollection {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static int ticks = 0;
-    private static final List<PlayerData> buffer = new ArrayList<>();
+    public static final List<PlayerData> buffer = new ArrayList<>();
     private static final Map<UUID, LocalDateTime> loginTimes = new HashMap<>();
 
     public ButtbotDataCollection(IEventBus modEventBus) {
@@ -67,10 +74,7 @@ public class ButtbotDataCollection {
         // Commit every 60 seconds (1200 ticks)
         if (ticks >= 1200) {
             ticks = 0;
-            for (PlayerData d : buffer) {
-                DatabaseManager.executeUpdate("INSERT INTO progress_NSA_module VALUES (?, ?, ?, ?, ?, ?)",
-                        Timestamp.valueOf(d.dt), d.name, d.world, d.x, d.y, d.z);
-            }
+            DatabaseManager.bulkPlayLocation(buffer);
             buffer.clear();
         }
     }
@@ -133,5 +137,5 @@ public class ButtbotDataCollection {
         }
     }
 
-    private record PlayerData(LocalDateTime dt, String name, double x, double y, double z, String world) {}
+    public record PlayerData(LocalDateTime dt, String name, double x, double y, double z, String world) {}
 }
