@@ -12,9 +12,16 @@ import net.neoforged.neoforge.event.entity.player.AdvancementEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.minecraft.server.level.ServerPlayer;
 import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.Temporal;
 import java.util.ArrayList;
 import java.util.List;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
 @Mod("buttbotdatacollection")
@@ -22,6 +29,7 @@ public class ButtbotDataCollection {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static int ticks = 0;
     private static final List<PlayerData> buffer = new ArrayList<>();
+    private static final Map<UUID, LocalDateTime> loginTimes = new HashMap<>();
 
     public ButtbotDataCollection(IEventBus modEventBus) {
         NeoForge.EVENT_BUS.register(this);
@@ -88,6 +96,40 @@ public class ButtbotDataCollection {
                     player.getScoreboardName(),
                     event.getAdvancement().id().toString()
             );
+        }
+    }
+
+    @SubscribeEvent
+    public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        String username = event.getEntity().getName().getString();
+        UUID uuid = event.getEntity().getUUID();
+        //insert uuid and player name into the users table
+        //use insert ignore so we don't overwrite previous user discovery.
+        DatabaseManager.executeUpdate("INSERT IGNORE INTO minecraft_players VALUES (?, ?, ?)",
+                username,
+                uuid.toString(),
+                Timestamp.valueOf(LocalDateTime.now())
+        );
+
+        // Store the login time in memory
+        loginTimes.put(uuid, LocalDateTime.now());
+
+        LOGGER.info("Playtime session started for {}", username);
+    }
+
+    @SubscribeEvent
+    public void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+        UUID uuid = event.getEntity().getUUID();
+        String username = event.getEntity().getName().getString();
+        LocalDateTime loginTime = loginTimes.get(uuid);
+        Duration playedTime = Duration.between(loginTime, LocalDateTime.now());
+        if (playedTime.toSeconds() > 0) {
+            DatabaseManager.executeUpdate("INSERT progress_playertracker_v2 (`player`, `datetime`,`timedelta`) values (?, ?, ?)",
+                    username,
+                    Timestamp.valueOf(LocalDateTime.now()),
+                    playedTime.toSeconds()
+            );
+            loginTimes.remove(uuid);
         }
     }
 
