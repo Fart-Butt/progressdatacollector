@@ -1,6 +1,7 @@
 package org.fartmans.buttbotdatacollection;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import org.slf4j.Logger;
@@ -33,7 +34,7 @@ public class ButtbotDataCollection {
     private static int ticks = 0;
     public static final List<PlayerData> buffer = new ArrayList<>();
     private static final Map<UUID, LocalDateTime> loginTimes = new HashMap<>();
-    private final ConcurrentSkipListMap<LogKey, ActionData> killLog = new ConcurrentSkipListMap<>(logComparator);
+    private final ConcurrentSkipListMap<LogKey, ActionData> mobKillLog = new ConcurrentSkipListMap<>(logComparator);
 
     public ButtbotDataCollection(IEventBus modEventBus) {
         NeoForge.EVENT_BUS.register(this);
@@ -144,21 +145,25 @@ public class ButtbotDataCollection {
     }
 
     @SubscribeEvent
-    public void onMonsterKill(LivingDeathEvent event) {
+    public void onMobKill(LivingDeathEvent event) {
         if (event.getEntity() instanceof Monster monster && event.getSource().getEntity() instanceof Player player) {
-            LOGGER.info(player.getName().getString());
-            LOGGER.info(monster.getName().getString());
-            killLog.put(
+            mobKillLog.put(
                     new LogKey(LocalDateTime.now(), System.nanoTime()),
                     new ActionData(player.getName().getString(), monster.getName().getString())
+            );
+        }
+        if (event.getEntity() instanceof Animal animal && event.getSource().getEntity() instanceof Player player) {
+            mobKillLog.put(
+                    new LogKey(LocalDateTime.now(), System.nanoTime()),
+                    new ActionData(player.getName().getString(), animal.getName().getString())
             );
         }
     }
 
     public synchronized ConcurrentSkipListMap<LogKey, ActionData> cloneMonsterKillSnapshot() {
         //clone list so we can save to database
-        ConcurrentSkipListMap<LogKey, ActionData> snapshot = new ConcurrentSkipListMap<>(this.killLog);
-        this.killLog.clear();
+        ConcurrentSkipListMap<LogKey, ActionData> snapshot = new ConcurrentSkipListMap<>(this.mobKillLog);
+        this.mobKillLog.clear();
         return snapshot;
     }
 

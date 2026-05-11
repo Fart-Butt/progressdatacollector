@@ -62,34 +62,35 @@ public class DatabaseManager {
                 String sql = "INSERT INTO progress_NSA_module VALUES (?, ?, ?, ?, ?, ?)";
 
                 try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-                    connection.setAutoCommit(false); // Start transaction for speed
+                    //connection.setAutoCommit(false); // Start transaction for speed
+                    connection.setAutoCommit(false);
+                    try {
+                        int count = 0;
+                        for (ButtbotDataCollection.PlayerData data : dataList) {
+                            pstmt.setTimestamp(1, java.sql.Timestamp.valueOf(data.dt()));
+                            pstmt.setString(2, data.name());
+                            pstmt.setString(3, data.world());
+                            pstmt.setDouble(4, data.x());
+                            pstmt.setDouble(5, data.y());
+                            pstmt.setDouble(6, data.z());
+                            pstmt.addBatch();
 
-                    int count = 0;
-                    for (ButtbotDataCollection.PlayerData data : dataList) {
-                        pstmt.setTimestamp(1, java.sql.Timestamp.valueOf(data.dt()));
-                        pstmt.setString(2, data.name());
-                        pstmt.setString(3, data.world());
-                        pstmt.setDouble(4, data.x());
-                        pstmt.setDouble(5, data.y());
-                        pstmt.setDouble(6, data.z());
-                        pstmt.addBatch();
-
-                        if (++count % 1000 == 0) {
-                            pstmt.executeBatch();
+                            if (++count % 1000 == 0) {
+                                pstmt.executeBatch();
+                            }
                         }
-                    }
-
+                    } catch (Exception e) { logger.error("error: {}", e.getMessage()); }
                     pstmt.executeBatch(); // Finalize remaining records
                     connection.commit();  // Commit the transaction
 
                 } catch (SQLException e) {
                     connection.rollback(); // Undo if something went wrong
-                    if (logger != null) logger.error("Bulk write failed, rolled back: {}", e.getMessage());
+                    if (logger != null) logger.error("BulkPlay write failed, rolled back: {}", e.getMessage());
                 } finally {
                     connection.setAutoCommit(true);
                 }
             } catch (SQLException e) {
-                if (logger != null) logger.error("Database connection error: {}", e.getMessage());
+                if (logger != null) logger.error("BulkPlay: Database connection error: {}", e.getMessage());
             }
         });
     }
@@ -104,7 +105,7 @@ public class DatabaseManager {
                     connection = DriverManager.getConnection(url, DataSecrets.USER, DataSecrets.PASSWORD);
                 }
 
-                String sql = "INSERT INTO monsterkills VALUES (?, ?, ?)";
+                String sql = "INSERT INTO mobkills VALUES (?, ?, ?)";
 
                 try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
                     connection.setAutoCommit(false); // Start transaction for speed
@@ -128,13 +129,13 @@ public class DatabaseManager {
                     connection.commit();  // Commit the transaction
 
                 } catch (SQLException e) {
+                    if (logger != null) logger.error("BulkMonster write failed, rolled back: {}", e.getMessage());
                     connection.rollback(); // Undo if something went wrong
-                    if (logger != null) logger.error("Bulk write failed, rolled back: {}", e.getMessage());
                 } finally {
                     connection.setAutoCommit(true);
                 }
             } catch (SQLException e) {
-                if (logger != null) logger.error("Database connection error: {}", e.getMessage());
+                if (logger != null) logger.error("BulkMonster: Database connection error: {}", e.getMessage());
             }
         });
     }
