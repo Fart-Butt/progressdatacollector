@@ -1,8 +1,6 @@
 package org.fartmans.buttbotdatacollection;
 
 import com.mojang.logging.LogUtils;
-import net.minecraft.world.entity.monster.Monster;
-import net.minecraft.world.entity.player.Player;
 import org.slf4j.Logger;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -14,7 +12,6 @@ import net.neoforged.neoforge.event.entity.player.AdvancementEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.minecraft.server.level.ServerPlayer;
 
-import java.awt.image.DataBuffer;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -24,11 +21,6 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import net.minecraft.network.chat.Component;
-import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
-import net.neoforged.neoforge.event.entity.item.ItemTossEvent;
-
-import javax.xml.crypto.Data;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
 @Mod("buttbotdatacollection")
@@ -74,7 +66,9 @@ public class ButtbotDataCollection {
         // Commit every 60 seconds (1200 ticks)
         if (ticks >= 1200) {
             ticks = 0;
-            DatabaseManager.bulkPlayLocation(buffer);
+            LOGGER.info("performing bulk insert of play location");
+            final List<PlayerData> dataSnapshot = List.copyOf(buffer);
+            DatabaseManager.insertBulkPlayLocation(dataSnapshot);
             buffer.clear();
         }
     }
