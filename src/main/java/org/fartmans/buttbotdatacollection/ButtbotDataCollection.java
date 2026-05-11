@@ -4,6 +4,9 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
+import net.neoforged.neoforge.event.entity.item.ItemTossEvent;
+import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
+import net.neoforged.neoforge.event.level.BlockEvent;
 import org.slf4j.Logger;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -16,6 +19,7 @@ import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
+import javax.xml.crypto.Data;
 import java.time.LocalDateTime;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.sql.Timestamp;
@@ -35,6 +39,9 @@ public class ButtbotDataCollection {
     public static final List<PlayerData> buffer = new ArrayList<>();
     private static final Map<UUID, LocalDateTime> loginTimes = new HashMap<>();
     private final ConcurrentSkipListMap<LogKey, ActionData> mobKillLog = new ConcurrentSkipListMap<>(logComparator);
+    private final ConcurrentSkipListMap<LogKey, ActionDataBlock> pickupLog = new ConcurrentSkipListMap<>(logComparator);
+    private final ConcurrentSkipListMap<LogKey, ActionDataBlock> dropLog = new ConcurrentSkipListMap<>(logComparator);
+    private final ConcurrentSkipListMap<LogKey, ActionData> blockPlaceLog = new ConcurrentSkipListMap<>(logComparator);
 
     public ButtbotDataCollection(IEventBus modEventBus) {
         NeoForge.EVENT_BUS.register(this);
@@ -81,7 +88,13 @@ public class ButtbotDataCollection {
             //insert kills data
             LOGGER.info("performing monster kills bulk insert");
             final ConcurrentSkipListMap<LogKey, ActionData> kl = cloneMonsterKillSnapshot();
+            final ConcurrentSkipListMap<LogKey, ActionDataBlock> pl = clonePickupLogSnapshot();
+            final ConcurrentSkipListMap<LogKey, ActionDataBlock> dl = cloneDropLogSnapshot();
+            final ConcurrentSkipListMap<LogKey, ActionData> bpl = cloneBlockPlaceLogSnapshot();
             DatabaseManager.insertBulkMonsterKills(kl);
+            DatabaseManager.insertBulkPickupLog(pl);
+            DatabaseManager.insertBulkDropLog(dl);
+            DatabaseManager.insertBulkBlockPlaceLog(bpl);
 
         }
     }
@@ -160,6 +173,46 @@ public class ButtbotDataCollection {
         }
     }
 
+    @SubscribeEvent
+    public void onItemPickup(ItemEntityPickupEvent.Post event) {
+        if (event.getItemEntity().getItem().getCount() > 0) {
+            pickupLog.put(
+                    new LogKey(LocalDateTime.now(), System.nanoTime()),
+                    new ActionDataBlock(event.getPlayer().getName().getString(),
+                            event.getItemEntity().getItem().getHoverName().getString(),
+                            event.getItemEntity().getItem().getCount())
+            );
+        }
+    }
+
+    @SubscribeEvent
+    public void onItemDrop(ItemTossEvent event) {
+        if (event.getEntity().getItem().getCount() > 0) {
+            dropLog.put(
+                    new LogKey(LocalDateTime.now(), System.nanoTime()),
+                    new ActionDataBlock(event.getPlayer().getName().getString(),
+                            event.getEntity().getItem().getHoverName().getString(),
+                            event.getEntity().getItem().getCount())
+            );
+        }
+        String itemInfo = event.getEntity().getItem().getCount() + "x " +
+                event.getEntity().getItem().getHoverName().getString();
+    }
+
+    @SubscribeEvent
+    public void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
+        // Ensure the entity placing the block is a player
+        if (!(event.getEntity() instanceof Player player)) return;
+
+        // Get the name of the block being placed
+        String blockName = event.getPlacedBlock().getBlock().getName().getString();
+
+        blockPlaceLog.put(
+                new LogKey(LocalDateTime.now(), System.nanoTime()),
+                new ActionData(player.getName().getString(), blockName)
+        );
+    }
+
     public synchronized ConcurrentSkipListMap<LogKey, ActionData> cloneMonsterKillSnapshot() {
         //clone list so we can save to database
         ConcurrentSkipListMap<LogKey, ActionData> snapshot = new ConcurrentSkipListMap<>(this.mobKillLog);
@@ -167,7 +220,29 @@ public class ButtbotDataCollection {
         return snapshot;
     }
 
+    public synchronized ConcurrentSkipListMap<LogKey, ActionDataBlock> clonePickupLogSnapshot() {
+        //clone list so we can save to database
+        ConcurrentSkipListMap<LogKey, ActionDataBlock> snapshot = new ConcurrentSkipListMap<>(this.pickupLog);
+        this.pickupLog.clear();
+        return snapshot;
+    }
+
+    public synchronized ConcurrentSkipListMap<LogKey, ActionDataBlock> cloneDropLogSnapshot() {
+        //clone list so we can save to database
+        ConcurrentSkipListMap<LogKey, ActionDataBlock> snapshot = new ConcurrentSkipListMap<>(this.dropLog);
+        this.dropLog.clear();
+        return snapshot;
+    }
+
+    public synchronized ConcurrentSkipListMap<LogKey, ActionData> cloneBlockPlaceLogSnapshot() {
+        //clone list so we can save to database
+        ConcurrentSkipListMap<LogKey, ActionData> snapshot = new ConcurrentSkipListMap<>(this.blockPlaceLog);
+        this.blockPlaceLog.clear();
+        return snapshot;
+    }
+
     public record PlayerData(LocalDateTime dt, String name, double x, double y, double z, String world) {}
     public record ActionData(String playerName, String target) {}
+    public record ActionDataBlock(String playerName, String target, Integer quantity) {}
     public record LogKey(LocalDateTime timestamp, long nanoId) {}
 }

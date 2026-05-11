@@ -139,4 +139,141 @@ public class DatabaseManager {
             }
         });
     }
+
+    public static void insertBulkPickupLog(ConcurrentSkipListMap<ButtbotDataCollection.LogKey, ButtbotDataCollection.ActionDataBlock> dataList) {
+        if (dataList == null || dataList.isEmpty()) return;
+        CompletableFuture.runAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) {
+                    String url = String.format("jdbc:mysql://%s:%d/%s?useSSL=true&serverTimezone=UTC&rewriteBatchedStatements=true",
+                            DataSecrets.HOST, DataSecrets.getPort(), DataSecrets.DATABASE);
+                    connection = DriverManager.getConnection(url, DataSecrets.USER, DataSecrets.PASSWORD);
+                }
+
+                String sql = "INSERT INTO pickuplog VALUES (?, ?, ?, ?)";
+
+                try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    connection.setAutoCommit(false); // Start transaction for speed
+
+                    int count = 0;
+                    for (Map.Entry<ButtbotDataCollection.LogKey, ButtbotDataCollection.ActionDataBlock> entry : dataList.entrySet()) {
+                        ButtbotDataCollection.LogKey key = entry.getKey();
+                        ButtbotDataCollection.ActionDataBlock data = entry.getValue();
+
+                        pstmt.setString(1, data.playerName());
+                        pstmt.setString(2, data.target());
+                        pstmt.setTimestamp(3, Timestamp.valueOf(key.timestamp()));
+                        pstmt.setInt(4,data.quantity());
+                        pstmt.addBatch();
+
+                        if (++count % 1000 == 0) {
+                            pstmt.executeBatch();
+                        }
+                    }
+
+                    pstmt.executeBatch(); // Finalize remaining records
+                    connection.commit();  // Commit the transaction
+
+                } catch (SQLException e) {
+                    if (logger != null) logger.error("BulkPickup write failed, rolled back: {}", e.getMessage());
+                    connection.rollback(); // Undo if something went wrong
+                } finally {
+                    connection.setAutoCommit(true);
+                }
+            } catch (SQLException e) {
+                if (logger != null) logger.error("BulkPickup: Database connection error: {}", e.getMessage());
+            }
+        });
+    }
+
+    public static void insertBulkDropLog(ConcurrentSkipListMap<ButtbotDataCollection.LogKey, ButtbotDataCollection.ActionDataBlock> dataList) {
+        if (dataList == null || dataList.isEmpty()) return;
+        CompletableFuture.runAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) {
+                    String url = String.format("jdbc:mysql://%s:%d/%s?useSSL=true&serverTimezone=UTC&rewriteBatchedStatements=true",
+                            DataSecrets.HOST, DataSecrets.getPort(), DataSecrets.DATABASE);
+                    connection = DriverManager.getConnection(url, DataSecrets.USER, DataSecrets.PASSWORD);
+                }
+
+                String sql = "INSERT INTO droplog VALUES (?, ?, ?, ?)";
+
+                try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    connection.setAutoCommit(false); // Start transaction for speed
+
+                    int count = 0;
+                    for (Map.Entry<ButtbotDataCollection.LogKey, ButtbotDataCollection.ActionDataBlock> entry : dataList.entrySet()) {
+                        ButtbotDataCollection.LogKey key = entry.getKey();
+                        ButtbotDataCollection.ActionDataBlock data = entry.getValue();
+
+                        pstmt.setString(1, data.playerName());
+                        pstmt.setString(2, data.target());
+                        pstmt.setTimestamp(3, Timestamp.valueOf(key.timestamp()));
+                        pstmt.setInt(4,data.quantity());
+                        pstmt.addBatch();
+
+                        if (++count % 1000 == 0) {
+                            pstmt.executeBatch();
+                        }
+                    }
+
+                    pstmt.executeBatch(); // Finalize remaining records
+                    connection.commit();  // Commit the transaction
+
+                } catch (SQLException e) {
+                    if (logger != null) logger.error("BulkDrop write failed, rolled back: {}", e.getMessage());
+                    connection.rollback(); // Undo if something went wrong
+                } finally {
+                    connection.setAutoCommit(true);
+                }
+            } catch (SQLException e) {
+                if (logger != null) logger.error("BulkDrop: Database connection error: {}", e.getMessage());
+            }
+        });
+    }
+
+    public static void insertBulkBlockPlaceLog(ConcurrentSkipListMap<ButtbotDataCollection.LogKey, ButtbotDataCollection.ActionData> dataList) {
+        if (dataList == null || dataList.isEmpty()) return;
+        CompletableFuture.runAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) {
+                    String url = String.format("jdbc:mysql://%s:%d/%s?useSSL=true&serverTimezone=UTC&rewriteBatchedStatements=true",
+                            DataSecrets.HOST, DataSecrets.getPort(), DataSecrets.DATABASE);
+                    connection = DriverManager.getConnection(url, DataSecrets.USER, DataSecrets.PASSWORD);
+                }
+
+                String sql = "INSERT INTO blockplacelog VALUES (?, ?, ?)";
+
+                try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    connection.setAutoCommit(false); // Start transaction for speed
+
+                    int count = 0;
+                    for (Map.Entry<ButtbotDataCollection.LogKey, ButtbotDataCollection.ActionData> entry : dataList.entrySet()) {
+                        ButtbotDataCollection.LogKey key = entry.getKey();
+                        ButtbotDataCollection.ActionData data = entry.getValue();
+
+                        pstmt.setString(1, data.playerName());
+                        pstmt.setString(2, data.target());
+                        pstmt.setTimestamp(3, Timestamp.valueOf(key.timestamp()));
+                        pstmt.addBatch();
+
+                        if (++count % 1000 == 0) {
+                            pstmt.executeBatch();
+                        }
+                    }
+
+                    pstmt.executeBatch(); // Finalize remaining records
+                    connection.commit();  // Commit the transaction
+
+                } catch (SQLException e) {
+                    if (logger != null) logger.error("BulkPlace write failed, rolled back: {}", e.getMessage());
+                    connection.rollback(); // Undo if something went wrong
+                } finally {
+                    connection.setAutoCommit(true);
+                }
+            } catch (SQLException e) {
+                if (logger != null) logger.error("BulkPlace: Database connection error: {}", e.getMessage());
+            }
+        });
+    }
 }
