@@ -1,9 +1,11 @@
 package org.fartmans.buttbotdatacollection;
 
 import java.sql.*;
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentSkipListMap;
+
 import org.slf4j.Logger;
 
 public class DatabaseManager {
@@ -70,6 +72,51 @@ public class DatabaseManager {
                         pstmt.setDouble(4, data.x());
                         pstmt.setDouble(5, data.y());
                         pstmt.setDouble(6, data.z());
+                        pstmt.addBatch();
+
+                        if (++count % 1000 == 0) {
+                            pstmt.executeBatch();
+                        }
+                    }
+
+                    pstmt.executeBatch(); // Finalize remaining records
+                    connection.commit();  // Commit the transaction
+
+                } catch (SQLException e) {
+                    connection.rollback(); // Undo if something went wrong
+                    if (logger != null) logger.error("Bulk write failed, rolled back: {}", e.getMessage());
+                } finally {
+                    connection.setAutoCommit(true);
+                }
+            } catch (SQLException e) {
+                if (logger != null) logger.error("Database connection error: {}", e.getMessage());
+            }
+        });
+    }
+
+    public static void insertBulkMonsterKills(ConcurrentSkipListMap<ButtbotDataCollection.LogKey, ButtbotDataCollection.ActionData> dataList) {
+        if (dataList == null || dataList.isEmpty()) return;
+        CompletableFuture.runAsync(() -> {
+            try {
+                if (connection == null || connection.isClosed()) {
+                    String url = String.format("jdbc:mysql://%s:%d/%s?useSSL=true&serverTimezone=UTC&rewriteBatchedStatements=true",
+                            DataSecrets.HOST, DataSecrets.getPort(), DataSecrets.DATABASE);
+                    connection = DriverManager.getConnection(url, DataSecrets.USER, DataSecrets.PASSWORD);
+                }
+
+                String sql = "INSERT INTO monsterkills VALUES (?, ?, ?)";
+
+                try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                    connection.setAutoCommit(false); // Start transaction for speed
+
+                    int count = 0;
+                    for (Map.Entry<ButtbotDataCollection.LogKey, ButtbotDataCollection.ActionData> entry : dataList.entrySet()) {
+                        ButtbotDataCollection.LogKey key = entry.getKey();
+                        ButtbotDataCollection.ActionData data = entry.getValue();
+
+                        pstmt.setString(1, data.playerName());
+                        pstmt.setString(2, data.target());
+                        pstmt.setTimestamp(3, Timestamp.valueOf(key.timestamp()));
                         pstmt.addBatch();
 
                         if (++count % 1000 == 0) {

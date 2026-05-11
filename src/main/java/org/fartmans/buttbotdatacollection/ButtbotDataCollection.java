@@ -1,6 +1,8 @@
 package org.fartmans.buttbotdatacollection;
 
 import com.mojang.logging.LogUtils;
+import net.minecraft.world.entity.monster.Monster;
+import net.minecraft.world.entity.player.Player;
 import org.slf4j.Logger;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -11,24 +13,27 @@ import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
 import net.neoforged.neoforge.event.entity.player.AdvancementEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
+import java.time.LocalDateTime;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.sql.Timestamp;
 import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 // The value here should match an entry in the META-INF/neoforge.mods.toml file
 @Mod("buttbotdatacollection")
 public class ButtbotDataCollection {
+
+    private final Comparator<LogKey> logComparator = Comparator
+            .comparing(LogKey::timestamp)
+            .thenComparingLong(LogKey::nanoId);
+
     private static final Logger LOGGER = LogUtils.getLogger();
     private static int ticks = 0;
     public static final List<PlayerData> buffer = new ArrayList<>();
     private static final Map<UUID, LocalDateTime> loginTimes = new HashMap<>();
+    private final ConcurrentSkipListMap<LogKey, ActionData> killLog = new ConcurrentSkipListMap<>(logComparator);
 
     public ButtbotDataCollection(IEventBus modEventBus) {
         NeoForge.EVENT_BUS.register(this);
@@ -66,10 +71,17 @@ public class ButtbotDataCollection {
         // Commit every 60 seconds (1200 ticks)
         if (ticks >= 1200) {
             ticks = 0;
+            //insert play location data
             LOGGER.info("performing bulk insert of play location");
             final List<PlayerData> dataSnapshot = List.copyOf(buffer);
             DatabaseManager.insertBulkPlayLocation(dataSnapshot);
             buffer.clear();
+
+            //insert kills data
+            LOGGER.info("performing monster kills bulk insert");
+            final ConcurrentSkipListMap<LogKey, ActionData> kl = cloneMonsterKillSnapshot();
+            DatabaseManager.insertBulkMonsterKills(kl);
+
         }
     }
 
@@ -131,5 +143,26 @@ public class ButtbotDataCollection {
         }
     }
 
+    @SubscribeEvent
+    public void onMonsterKill(LivingDeathEvent event) {
+        if (event.getEntity() instanceof Monster monster && event.getSource().getEntity() instanceof Player player) {
+            LOGGER.info(player.getName().getString());
+            LOGGER.info(monster.getName().getString());
+            killLog.put(
+                    new LogKey(LocalDateTime.now(), System.nanoTime()),
+                    new ActionData(player.getName().getString(), monster.getName().getString())
+            );
+        }
+    }
+
+    public synchronized ConcurrentSkipListMap<LogKey, ActionData> cloneMonsterKillSnapshot() {
+        //clone list so we can save to database
+        ConcurrentSkipListMap<LogKey, ActionData> snapshot = new ConcurrentSkipListMap<>(this.killLog);
+        this.killLog.clear();
+        return snapshot;
+    }
+
     public record PlayerData(LocalDateTime dt, String name, double x, double y, double z, String world) {}
+    public record ActionData(String playerName, String target) {}
+    public record LogKey(LocalDateTime timestamp, long nanoId) {}
 }
