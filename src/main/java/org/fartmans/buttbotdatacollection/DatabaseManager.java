@@ -294,10 +294,13 @@ public class DatabaseManager {
             Timestamp ts = Timestamp.valueOf(LocalDateTime.now());
 
             //reference table insertion
-            executeUpdateBlocking("insert into inventory_update(`player_name`,`datetime`,`UUID`) values (?, ?, ?)",
+            executeUpdateBlocking("insert into inventory_update(`player_name`,`datetime`,`UUID`, `experiencelevel`, `maxhealth`, `maxarmor`) values (?, ?, ?, ?, ?, ?)",
                     ps.name(),
                     ts,
-                    uuid
+                    uuid,
+                    ps.level(),
+                    ps.hp(),
+                    ps.defense()
                     );
 
             //built-in statistics
