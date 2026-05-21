@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 public class DatabaseManager {
     private static Connection connection;
     private static Logger logger;
-    private static String jdbcUrl="jdbc:mysql://%s:%d/%s?SSL=true&serverTimezone=UTC&rewriteBatchedStatements=true&logger=Slf4JLogger&profileSQL=true";  //&logger=Slf4JLogger&profileSQL=true
+    private static String jdbcUrl="jdbc:mysql://%s:%d/%s?SSL=true&serverTimezone=UTC&rewriteBatchedStatements=true";  //&logger=Slf4JLogger&profileSQL=true
 
     public static void init(Logger logInstance) {
         logger = logInstance;
