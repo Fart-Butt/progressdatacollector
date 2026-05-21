@@ -129,7 +129,7 @@ public class ButtbotDataCollection {
     @SubscribeEvent
     public void onAdvancement(AdvancementEvent.AdvancementEarnEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-            DatabaseManager.executeUpdateAsync("INSERT INTO progres_cheevos(`datetime`, `player_name`, `cheevo_text` VALUES (?, ?, ?)",
+            DatabaseManager.executeUpdateAsync("INSERT INTO progres_cheevos(`datetime`, `player_name`, `cheevo_text`) VALUES (?, ?, ?)",
                     Timestamp.valueOf(LocalDateTime.now()),
                     player.getScoreboardName(),
                     event.getAdvancement().id().toString()
