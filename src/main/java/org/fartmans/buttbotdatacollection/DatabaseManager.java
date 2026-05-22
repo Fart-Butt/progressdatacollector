@@ -82,8 +82,7 @@ public class DatabaseManager {
                 String sql = "INSERT INTO progress_NSA_module(`datetime`,`player_name`,`dimension`, `x`, `y`, `z`) VALUES (?, ?, ?, ?, ?, ?)";
 
                 try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-                    //connection.setAutoCommit(false); // Start transaction for speed
-                    connection.setAutoCommit(false);
+
                     try {
                         int count = 0;
                         for (ButtbotDataCollection.PlayerData data : dataList) {
@@ -105,8 +104,6 @@ public class DatabaseManager {
                 } catch (SQLException e) {
                     connection.rollback(); // Undo if something went wrong
                     if (logger != null) logger.error("BulkPlay write failed, rolled back: {}", e.getMessage());
-                } finally {
-                    connection.setAutoCommit(true);
                 }
             } catch (SQLException e) {
                 if (logger != null) logger.error("BulkPlay: Database connection error: {}", e.getMessage());
@@ -127,7 +124,6 @@ public class DatabaseManager {
                 String sql = "INSERT INTO mobkills(`player_name`, `target`, `datetime`) VALUES (?, ?, ?)";
 
                 try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-                    connection.setAutoCommit(false); // Start transaction for speed
 
                     int count = 0;
                     for (Map.Entry<ButtbotDataCollection.LogKey, ButtbotDataCollection.ActionData> entry : dataList.entrySet()) {
@@ -149,9 +145,8 @@ public class DatabaseManager {
                 } catch (SQLException e) {
                     if (logger != null) logger.error("BulkMonster write failed, rolled back: {}", e.getMessage());
                     connection.rollback(); // Undo if something went wrong
-                } finally {
-                    connection.setAutoCommit(true);
                 }
+
             } catch (SQLException e) {
                 if (logger != null) logger.error("BulkMonster: Database connection error: {}", e.getMessage());
             }
@@ -171,7 +166,6 @@ public class DatabaseManager {
                 String sql = "INSERT INTO pickuplog(`player_name`, `item`, `datetime`, `quantity`) VALUES (?, ?, ?, ?)";
                 logger.info(dataList.toString());
                 try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-                    connection.setAutoCommit(false); // Start transaction for speed
 
                     int count = 0;
                     for (Map.Entry<ButtbotDataCollection.LogKey, ButtbotDataCollection.ActionDataBlock> entry : dataList.entrySet()) {
@@ -193,8 +187,6 @@ public class DatabaseManager {
                 } catch (SQLException e) {
                     if (logger != null) logger.error("BulkPickup write failed, rolled back: {}", e.getMessage());
                     connection.rollback(); // Undo if something went wrong
-                } finally {
-                    connection.setAutoCommit(true);
                 }
             } catch (SQLException e) {
                 if (logger != null) logger.error("BulkPickup: Database connection error: {}", e.getMessage());
