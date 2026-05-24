@@ -330,8 +330,7 @@ public class ButtbotDataCollection {
     @SubscribeEvent
     public void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
         // Ensure the entity placing the block is a player
-        if (!(event.getEntity() instanceof Player player)) return;
-
+        if (!(event.getEntity() instanceof Player player) || (player.getName().toString().equals("Deployer"))) return;
         // Get the name of the block being placed
         String blockName = event.getPlacedBlock().getBlock().getName().getString();
 
