@@ -340,8 +340,6 @@ public class DatabaseManager {
 
                 } catch (SQLException e) {
                     if (logger != null) logger.error("InventoryItems write failed, rolled back: {}", e.getMessage());
-                    logger.error(e.getSQLState());
-                    logger.error(e.getStackTrace().toString());
                     connection.rollback(); // Undo if something went wrong
                 }
             } catch (SQLException e) {
