@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 public class DatabaseManager {
     private static Connection connection;
     private static Logger logger;
-    private static String jdbcUrl="jdbc:mysql://%s:%d/%s?SSL=true&serverTimezone=UTC&rewriteBatchedStatements=true";  //&logger=Slf4JLogger&profileSQL=true
+    private static String jdbcUrl="jdbc:mysql://%s:%d/%s?SSL=true&serverTimezone=UTC&rewriteBatchedStatements=true&logger=Slf4JLogger&profileSQL=true";  //&logger=Slf4JLogger&profileSQL=true
 
     public static void init(Logger logInstance) {
         logger = logInstance;
@@ -164,7 +164,6 @@ public class DatabaseManager {
                 }
 
                 String sql = "INSERT INTO pickuplog(`player_name`, `item`, `datetime`, `quantity`) VALUES (?, ?, ?, ?)";
-                logger.info(dataList.toString());
                 try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
 
                     int count = 0;
@@ -357,7 +356,6 @@ public class DatabaseManager {
                     connection = DriverManager.getConnection(url, DataSecrets.USER, DataSecrets.PASSWORD);
                 }
                 String sql = "insert into curios(`UUID`,`slot`,`item`, `display_name`) values (?, ?, ?, ?)";
-
                 try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
                 int count = 0;
                 for (ButtbotDataCollection.CuriosItemData entry : ps.curios()) {
