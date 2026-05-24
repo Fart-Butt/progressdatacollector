@@ -51,8 +51,7 @@ public class ButtbotDataCollection {
     private final ConcurrentSkipListMap<LogKey, ActionDataBlock> pickupLog = new ConcurrentSkipListMap<>(logComparator);
     private final ConcurrentSkipListMap<LogKey, ActionDataBlock> dropLog = new ConcurrentSkipListMap<>(logComparator);
     private final ConcurrentSkipListMap<LogKey, ActionData> blockPlaceLog = new ConcurrentSkipListMap<>(logComparator);
-    public static final List<CuriosItemData> curios = new ArrayList<>();
-    public static final List<ItemData> hotbarAndArmor = new ArrayList<>(); //1= hotbar, 2= inventory
+
 
     public ButtbotDataCollection(IEventBus modEventBus) {
         Runtime.getRuntime().addShutdownHook(new Thread(this::commitPlayedStatistics, "buttbot-data-collection-shutdown-hook"));
@@ -185,6 +184,9 @@ public class ButtbotDataCollection {
     }
 
     private static PlayerSnapshot collectPlayerData(ServerPlayer player) {
+        List<CuriosItemData> curios = new ArrayList<>();
+        List<ItemData> hotbarAndArmor = new ArrayList<>(); //1= hotbar, 2= inventory
+
         //gather hotbar items
         List<ItemData> hotbar = new ArrayList<>();
         for (int i = 0; i < 9; i++) {
@@ -228,7 +230,6 @@ public class ButtbotDataCollection {
         }
 
         Optional<ICuriosItemHandler> curiosInventoryOpt = CuriosApi.getCuriosInventory(player);
-
         if (curiosInventoryOpt.isPresent()) {
             ICuriosItemHandler inventoryHandler = curiosInventoryOpt.get();
             //iterate all slots
