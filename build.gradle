@@ -10,6 +10,7 @@ group = mod_group_id
 
 repositories {
     mavenLocal()
+    maven { url = "https://maven.theillusivec4.top/" }
 }
 
 base {
@@ -33,24 +34,9 @@ neoForge {
     // Default run configurations.
     // These can be tweaked, removed, or duplicated as needed.
     runs {
-        client {
-            client()
-
-            // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
         server {
             server()
             programArgument '--nogui'
-            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
-        }
-
-        // This run config launches GameTestServer and runs all registered gametests, then exits.
-        // By default, the server will crash when no gametests are provided.
-        // The gametest system is also enabled by default for other run configs under the /test command.
-        gameTestServer {
-            type = "gameTestServer"
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
@@ -116,7 +102,11 @@ dependencies {
     // For more info:
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
-    implementation 'com.mysql:mysql-connector-j:9.1.0'
+    compileOnly 'com.mysql:mysql-connector-j:9.1.0'
+    // Compile against only the API artifact
+    compileOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}:api"
+    // Use the full Curios API jar at runtime
+    runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -175,16 +165,4 @@ task customFatJar(type: Jar) {
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
-}
-
-//for curios
-repositories {
-    maven { url = "https://maven.theillusivec4.top/" }
-}
-
-dependencies {
-    // Compile against only the API artifact
-    compileOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}:api"
-    // Use the full Curios API jar at runtime
-    runtimeOnly "top.theillusivec4.curios:curios-neoforge:${curios_version}"
 }
