@@ -131,7 +131,7 @@ public class ButtbotDataCollection {
             DatabaseManager.executeUpdateAsync("INSERT INTO progres_cheevos(`datetime`, `player_name`, `cheevo_text`) VALUES (?, ?, ?)",
                     Timestamp.valueOf(LocalDateTime.now()),
                     player.getScoreboardName(),
-                    event.getAdvancement().id().toString()
+                    event.getAdvancement().toString()  //internal id
             );
         }
     }
@@ -166,6 +166,7 @@ public class ButtbotDataCollection {
         if (event.getEntity() instanceof ServerPlayer sp) {
             PlayerSnapshot ps = collectPlayerData(sp);
             storePlayerSnapshot(ps);
+            ps.reset();
         }
 
         UUID uuid = event.getEntity().getUUID();
@@ -393,10 +394,15 @@ public class ButtbotDataCollection {
             int distanceCrouched,
             int distanceFallen,
             int distanceSprinted,
+            int distanceWalked,
             int jumps,
             int playerKills,
-            int sneakTime,
             int targetsHit,
             int timeSlept
-    ) {}
+    ) {
+        public PlayerSnapshot reset() {
+            return new PlayerSnapshot("",0,0,0, new ArrayList<>(), new ArrayList<>(),
+                    0,0,0,0,0,0,0,0,0,0,0,0);
+        }
+    }
 }

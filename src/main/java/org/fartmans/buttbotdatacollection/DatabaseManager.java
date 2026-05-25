@@ -296,7 +296,7 @@ public class DatabaseManager {
 
             //built-in statistics
             executeUpdateBlocking("insert into playerstatistics (UUID, damageblocked, damagedealt, damagetaken, distanceclimbed, distancecrouched, " +
-                            "distancefallen, distancesprinted, jumps, playerkills, sneaktime, targetshit, timeslept) " +
+                            "distancefallen, distancesprinted, jumps, playerkills, distancewalked, targetshit, timeslept) " +
                             "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
                     uuid,
                     ps.damageBlocked(),
@@ -308,7 +308,7 @@ public class DatabaseManager {
                     ps.distanceSprinted(),
                     ps.jumps(),
                     ps.playerKills(),
-                    ps.sneakTime(),
+                    ps.distanceWalked(),
                     ps.targetsHit(), //the most important one
                     ps.timeSlept()
                     );
