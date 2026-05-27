@@ -42,7 +42,7 @@ neoForge {
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
-        server {
+        server2025 {
             server()
             gameDirectory = project.file('run/progress2025')
             ideName = "Progress 2025"
@@ -51,7 +51,7 @@ neoForge {
 
         }
 
-        server {
+        server2026 {
             server()
             gameDirectory = project.file('run/progress2026')
             ideName = "Progress 2026"
