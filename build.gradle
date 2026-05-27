@@ -36,18 +36,28 @@ neoForge {
     runs {
         server {
             server()
+            gameDirectory = project.file('run/vanilla')
+            ideName = "Default-ish"
             programArgument '--nogui'
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
 
-        data {
-            data()
+        server {
+            server()
+            gameDirectory = project.file('run/progress2025')
+            ideName = "Progress 2025"
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
 
-            // example of overriding the workingDirectory set in configureEach above, uncomment if you want to use it
-            // gameDirectory = project.file('run-data')
+        }
 
-            // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
-            programArguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        server {
+            server()
+            gameDirectory = project.file('run/progress2026')
+            ideName = "Progress 2026"
+            programArgument '--nogui'
+            systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+
         }
 
         // applies to all the run configs above
