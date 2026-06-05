@@ -53,7 +53,7 @@ neoForge {
 
         server2026 {
             server()
-            gameDirectory = project.file('run/progress2026')
+            gameDirectory = project.file('run/Progress-Skymall/minecraft')
             ideName = "Progress 2026"
             programArgument '--nogui'
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
