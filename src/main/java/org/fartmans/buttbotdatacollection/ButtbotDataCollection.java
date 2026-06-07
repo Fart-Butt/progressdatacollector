@@ -122,19 +122,38 @@ public class ButtbotDataCollection {
        CompletableFuture.runAsync(() -> {
             if (event.getEntity() instanceof ServerPlayer player) {
                 List<Component> dm = event.getSource().getLocalizedDeathMessage(player).toFlatList();
+                List<String> df = new ArrayList<>();
+                for (Component component : dm) {
+                    if (
+                        !component.getString().trim().equals(">") &&
+                        !component.getString().trim().equals("<") &&
+                        !component.getString().trim().isEmpty() &&
+                        !component.getString().trim().equals("Overworld") &&
+                        !component.getString().trim().equals("Mythica") &&
+                        !component.getString().trim().equals("Memorial") &&
+                        !component.getString().trim().equals("Sanctuary") &&
+                        !component.getString().trim().equals("The End") &&
+                        !component.getString().trim().equals("The Nether") &&
+                        !component.getString().trim().equals("Deeper Down") &&
+                        !component.getString().trim().equals("Twilight Forest")
+                    ) {
+                        df.add(component.getString().trim());
+                    }
+                }
+                for (String s: df) {
+                    logger.info(s);
+                }
+                if (df.isEmpty()) {
+                    df.add("None");
+                    df.add("None");
+                    df.add("None");
+                } else if (df.size() == 2) {
+                    df.add("None");
+                } else if (df.size() == 1) {
+                    df.add("None");
+                    df.add("None");
+                }
                 String uuid = UUID.randomUUID().toString();
-                String firstLocalization;
-                try{
-                    firstLocalization = dm.get(1).getString();
-                } catch (IndexOutOfBoundsException e) {
-                    firstLocalization = "None";
-                }
-                String secondLocalization;
-                try {
-                    secondLocalization = dm.get(2).getString();
-                } catch (IndexOutOfBoundsException e) {
-                    secondLocalization = "None";
-                }
                 String weaponItem;
                 try {
                     weaponItem = event.getSource().getWeaponItem().toString();
@@ -150,14 +169,14 @@ public class ButtbotDataCollection {
                         uuid,
                         event.getSource().getMsgId(),
                         weaponItem,
-                        firstLocalization,
-                        secondLocalization,
+                        df.get(1),
+                        df.get(2),
                         event.getSource().getLocalizedDeathMessage(player).toString().split("'")[1]
                 );
-               DatabaseManager.executeUpdateBlocking("INSERT into payload `uuid`, `payload` values (?, ?)",
-                       uuid,
-                       event.getSource().getLocalizedDeathMessage(player)
-                    );
+               //DatabaseManager.executeUpdateBlocking("INSERT into payload `uuid`, `payload` values (?, ?)",
+               //        uuid,
+                //       event.getSource().getLocalizedDeathMessage(player).getString()
+                //    );
             }
         });
     }
