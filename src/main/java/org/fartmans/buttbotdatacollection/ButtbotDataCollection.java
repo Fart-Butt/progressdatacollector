@@ -9,6 +9,7 @@ import net.neoforged.neoforge.event.entity.item.ItemTossEvent;
 import net.neoforged.neoforge.event.entity.player.ItemEntityPickupEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+import org.apache.logging.log4j.message.LocalizedMessage;
 import org.slf4j.Logger;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -22,6 +23,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentContents;
 
 import top.theillusivec4.curios.api.CuriosApi;
 import top.theillusivec4.curios.api.type.capability.ICuriosItemHandler;
@@ -29,6 +32,7 @@ import top.theillusivec4.curios.api.type.capability.ICuriosItemHandler;
 import java.util.ArrayList;
 import java.util.List;
 import java.time.LocalDateTime;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -114,15 +118,48 @@ public class ButtbotDataCollection {
 
     @SubscribeEvent
     public void onPlayerDeath(LivingDeathEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player) {
-            DatabaseManager.executeUpdateAsync("INSERT INTO progress_deaths(`datetime`, `player_name`, `message`, `world`, `x`, `y`, `z`) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    Timestamp.valueOf(LocalDateTime.now()),
-                    player.getScoreboardName(),
-                    event.getSource().getLocalizedDeathMessage(player).getString(),
-                    player.level().dimension().location().toString(),
-                    player.getX(), player.getY(), player.getZ()
-            );
-        }
+        //async function since we have blocking queries
+       CompletableFuture.runAsync(() -> {
+            if (event.getEntity() instanceof ServerPlayer player) {
+                List<Component> dm = event.getSource().getLocalizedDeathMessage(player).toFlatList();
+                String uuid = UUID.randomUUID().toString();
+                String firstLocalization;
+                try{
+                    firstLocalization = dm.get(1).getString();
+                } catch (IndexOutOfBoundsException e) {
+                    firstLocalization = "None";
+                }
+                String secondLocalization;
+                try {
+                    secondLocalization = dm.get(2).getString();
+                } catch (IndexOutOfBoundsException e) {
+                    secondLocalization = "None";
+                }
+                String weaponItem;
+                try {
+                    weaponItem = event.getSource().getWeaponItem().toString();
+                } catch (NullPointerException e) {
+                    weaponItem = "None";
+                }
+                DatabaseManager.executeUpdateBlocking("INSERT INTO progress_deaths(`datetime`, `player_name`, `message`, `world`, `x`, `y`, `z`, `payloadUUID`, `type`, `weapon`, `localizationText`, `localizationMob`, `key`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        Timestamp.valueOf(LocalDateTime.now()),
+                        player.getScoreboardName(),
+                        event.getSource().getLocalizedDeathMessage(player).getString(),
+                        player.level().dimension().location().toString(),
+                        player.getX(), player.getY(), player.getZ(),
+                        uuid,
+                        event.getSource().getMsgId(),
+                        weaponItem,
+                        firstLocalization,
+                        secondLocalization,
+                        event.getSource().getLocalizedDeathMessage(player).toString().split("'")[1]
+                );
+               DatabaseManager.executeUpdateBlocking("INSERT into payload `uuid`, `payload` values (?, ?)",
+                       uuid,
+                       event.getSource().getLocalizedDeathMessage(player)
+                    );
+            }
+        });
     }
 
     @SubscribeEvent
@@ -138,6 +175,7 @@ public class ButtbotDataCollection {
 
     @SubscribeEvent
     public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        logger.info(event.toString());
         String username = event.getEntity().getName().getString();
         UUID uuid = event.getEntity().getUUID();
         //insert uuid and player name into the users table
@@ -162,6 +200,7 @@ public class ButtbotDataCollection {
 
     @SubscribeEvent
     public void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+        logger.info(event.toString());
         //capture snapshot
         if (event.getEntity() instanceof ServerPlayer sp) {
             PlayerSnapshot ps = collectPlayerData(sp);
@@ -300,6 +339,7 @@ public class ButtbotDataCollection {
 
     @SubscribeEvent
     public void onItemPickup(ItemEntityPickupEvent.Post event) {
+        logger.info(event.toString());
         ItemStack originalStack = event.getOriginalStack();
         int count = originalStack.getCount();
         if (!originalStack.isEmpty() && count > 0) {
@@ -316,6 +356,7 @@ public class ButtbotDataCollection {
 
     @SubscribeEvent
     public void onItemDrop(ItemTossEvent event) {
+        logger.info(event.toString());
         ItemStack itemStack = event.getEntity().getItem();
         if (!itemStack.isEmpty() && itemStack.getCount() > 0) {
             dropLog.put(
@@ -332,6 +373,7 @@ public class ButtbotDataCollection {
     public void onBlockPlace(BlockEvent.EntityPlaceEvent event) {
         // Ensure the entity placing the block is a player
         if (!(event.getEntity() instanceof Player player) || (player.getName().toString().equals("Deployer"))) return;
+        logger.info(event.toString());
         // Get the name of the block being placed
         String blockName = event.getPlacedBlock().getBlock().getName().getString();
 
